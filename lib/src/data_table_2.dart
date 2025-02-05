@@ -145,50 +145,53 @@ class DataRow2 extends DataRow {
 /// relative column sizes (setting them to S, M and L). [DataRow2] provides
 /// row-level tap event handlers.
 class DataTable2 extends DataTable {
-  DataTable2({
-    super.key,
-    required super.columns,
-    super.sortColumnIndex,
-    super.sortAscending = true,
-    super.onSelectAll,
-    super.decoration,
-    super.dataRowColor,
-    this.dataRowHeight,
-    super.dataTextStyle,
-    super.headingRowColor,
-    this.fixedColumnsColor,
-    this.fixedCornerColor,
-    super.headingRowHeight,
-    super.headingTextStyle,
-    this.headingCheckboxTheme,
-    this.datarowCheckboxTheme,
-    super.horizontalMargin,
-    super.checkboxHorizontalMargin,
-    this.checkboxAlignment = Alignment.center,
-    this.bottomMargin,
-    super.columnSpacing,
-    this.showHeadingCheckBox = true,
-    super.showCheckboxColumn = true,
-    super.showBottomBorder = false,
-    super.dividerThickness,
-    super.clipBehavior,
-    this.minWidth,
-    this.scrollController,
-    this.horizontalScrollController,
-    this.isVerticalScrollBarVisible,
-    this.isHorizontalScrollBarVisible,
-    this.empty,
-    this.border,
-    this.smRatio = 0.67,
-    this.fixedTopRows = 1,
-    this.fixedLeftColumns = 0,
-    this.lmRatio = 1.2,
-    this.sortArrowAnimationDuration = const Duration(milliseconds: 150),
-    this.sortArrowIcon = Icons.arrow_upward,
-    this.sortArrowBuilder,
-    this.headingRowDecoration,
-    required super.rows,
-  })  : assert(fixedLeftColumns >= 0),
+  DataTable2(
+      {super.key,
+      required super.columns,
+      super.sortColumnIndex,
+      super.sortAscending = true,
+      super.onSelectAll,
+      super.decoration,
+      super.dataRowColor,
+      this.dataRowHeight,
+      super.dataTextStyle,
+      super.headingRowColor,
+      this.fixedColumnsColor,
+      this.fixedCornerColor,
+      super.headingRowHeight,
+      super.headingTextStyle,
+      this.headingCheckboxTheme,
+      this.datarowCheckboxTheme,
+      super.horizontalMargin,
+      super.checkboxHorizontalMargin,
+      this.checkboxAlignment = Alignment.center,
+      this.bottomMargin,
+      super.columnSpacing,
+      this.showHeadingCheckBox = true,
+      super.showCheckboxColumn = true,
+      super.showBottomBorder = false,
+      super.dividerThickness,
+      super.clipBehavior,
+      this.minWidth,
+      this.scrollController,
+      this.horizontalScrollController,
+      this.isVerticalScrollBarVisible,
+      this.isHorizontalScrollBarVisible,
+      this.empty,
+      this.border,
+      this.smRatio = 0.67,
+      this.fixedTopRows = 1,
+      this.fixedLeftColumns = 0,
+      this.lmRatio = 1.2,
+      this.sortArrowAnimationDuration = const Duration(milliseconds: 150),
+      this.sortArrowIcon = Icons.arrow_upward,
+      this.sortArrowBuilder,
+      this.headingRowDecoration,
+      required super.rows,
+      this.highlightColumnColor,
+      this.highlightColumnIndex,
+      this.highlightDuration = const Duration(milliseconds: 100)})
+      : assert(fixedLeftColumns >= 0),
         assert(fixedTopRows >= 0);
 
   static final LocalKey _headingRowKey = UniqueKey();
@@ -339,6 +342,12 @@ class DataTable2 extends DataTable {
   /// this color is static and doesn't repond to state change
   /// Note: to change background color of fixed data rows use [DataTable2.headingRowColor]
   final Color? fixedCornerColor;
+
+  final int? highlightColumnIndex;
+
+  final Color? highlightColumnColor;
+
+  final Duration highlightDuration;
 
   (double, double) getMinMaxRowHeight(DataTableThemeData dataTableTheme) {
     final double effectiveDataRowMinHeight = dataRowHeight ??
@@ -522,7 +531,7 @@ class DataTable2 extends DataTable {
       child: DefaultTextStyle(
         style: effectiveDataTextStyle.copyWith(
           color: placeholder
-              ? effectiveDataTextStyle.color!.withOpacity( 0.6)
+              ? effectiveDataTextStyle.color!.withOpacity(0.6)
               : null,
         ),
         child: DropdownButtonHideUnderline(child: label),
@@ -846,6 +855,31 @@ class DataTable2 extends DataTable {
                     MainAxisAlignment.start,
               );
 
+              if (highlightColumnIndex != null &&
+                  dataColumnIndex == highlightColumnIndex) {
+                h = AnimatedContainer(
+                  duration: highlightDuration,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        topRight: Radius.circular(4)),
+                    color: highlightColumnIndex != null &&
+                            highlightColumnIndex == dataColumnIndex
+                        ? highlightColumnColor
+                        : null,
+                  ),
+                  curve: Curves.easeInOut,
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      left: 4,
+                      right: 2,
+                      top: 4,
+                    ),
+                    child: h,
+                  ),
+                );
+              }
+
               headingRow.children[displayColumnIndex] =
                   h; // heading row alone is used to display table header should there be no data rows
 
@@ -900,7 +934,27 @@ class DataTable2 extends DataTable {
                         ? () => row.onSelectChanged!(!row.selected)
                         : null,
                     overlayColor: row.color ?? effectiveDataRowColor);
-
+                if (highlightColumnIndex != null &&
+                    dataColumnIndex == highlightColumnIndex) {
+                  c = AnimatedContainer(
+                    duration: highlightDuration,
+                    decoration: BoxDecoration(
+                      color: highlightColumnIndex != null &&
+                          highlightColumnIndex == dataColumnIndex
+                          ? highlightColumnColor
+                          : null,
+                    ),
+                    curve: Curves.easeInOut,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: 4,
+                        right: 2,
+                        top: 4,
+                      ),
+                      child: c,
+                    ),
+                  );
+                }
                 if (displayColumnIndex < actualFixedColumns) {
                   if (rowIndex + 1 < actualFixedRows) {
                     fixedCornerRows![rowIndex + 1]

@@ -1,4 +1,6 @@
-import 'package:data_table_2/data_table_2.dart';
+import 'dart:async';
+
+import 'package:data_table_2_fork/data_table_2.dart';
 import 'package:flutter/material.dart';
 
 import '../data_sources.dart';
@@ -25,6 +27,15 @@ class DataTable2DemoState extends State<DataTable2Demo> {
   bool _initialized = false;
   bool showCustomArrow = false;
   bool sortArrowsAlwaysVisible = false;
+  int? highlightColumnIndex = null;
+  Duration duration = const Duration(seconds: 2);
+  StreamSubscription? timerSubscription;
+
+  Future startTimer(Duration duration) async{
+   timerSubscription =  await Future.delayed(duration,(){
+
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -44,6 +55,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
     }
   }
 
+
   void _sort<T>(
     Comparable<T> Function(Dessert d) getField,
     int columnIndex,
@@ -52,6 +64,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
     _dessertsDataSource.sort<T>(getField, ascending);
     setState(() {
       _sortColumnIndex = columnIndex;
+      highlightColumnIndex = columnIndex;
       _sortAscending = ascending;
     });
   }
@@ -59,6 +72,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
   @override
   void dispose() {
     _dessertsDataSource.dispose();
+    timerSubscription?.cancel();
     super.dispose();
   }
 
@@ -81,6 +95,9 @@ class DataTable2DemoState extends State<DataTable2Demo> {
             // Forcing all scrollbars to be visible, alternatively themes can be used (see above)
             headingRowColor:
                 WidgetStateColor.resolveWith((states) => Colors.grey[850]!),
+            highlightColumnIndex: highlightColumnIndex,
+            highlightColumnColor: Colors.deepOrange,
+            highlightDuration: Duration(milliseconds: 100),
             headingTextStyle: const TextStyle(color: Colors.white),
             headingCheckboxTheme: const CheckboxThemeData(
                 side: BorderSide(color: Colors.white, width: 2.0)),
