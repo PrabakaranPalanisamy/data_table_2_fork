@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:data_table_2_fork/data_table_2.dart';
+import 'package:data_table_2_extended/data_table_2.dart';
 import 'package:flutter/material.dart';
 
 import '../data_sources.dart';
@@ -97,7 +97,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
                 WidgetStateColor.resolveWith((states) => Colors.grey[850]!),
             highlightColumnIndex: highlightColumnIndex,
             highlightColumnColor: Colors.deepOrange,
-            highlightDuration: Duration(milliseconds: 100),
+            highlightDuration: Duration(milliseconds: 200),
             headingTextStyle: const TextStyle(color: Colors.white),
             headingCheckboxTheme: const CheckboxThemeData(
                 side: BorderSide(color: Colors.white, width: 2.0)),
@@ -151,6 +151,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
               DataColumn2(
                 label: const Text('Desert'),
                 size: ColumnSize.S,
+                headingRowAlignment: MainAxisAlignment.spaceBetween,
                 // example of fixed 1st row
                 fixedWidth: getCurrentRouteOption(context) == fixedColumnWidth
                     ? 200
@@ -162,6 +163,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
               DataColumn2(
                 label: const Text('Calories'),
                 size: ColumnSize.S,
+                headingRowAlignment: MainAxisAlignment.spaceBetween,
                 numeric: true,
                 onSort: (columnIndex, ascending) =>
                     _sort<num>((d) => d.calories, columnIndex, ascending),
@@ -169,6 +171,7 @@ class DataTable2DemoState extends State<DataTable2Demo> {
               DataColumn2(
                 label: const Text('Fat (gm)'),
                 size: ColumnSize.S,
+                headingRowAlignment: MainAxisAlignment.spaceBetween,
                 numeric: true,
                 onSort: (columnIndex, ascending) =>
                     _sort<num>((d) => d.fat, columnIndex, ascending),

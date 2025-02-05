@@ -1,3 +1,6 @@
+## 2.5.20
+- Added highlight column option in data table.
+
 ## 2.5.18
 - Added DataCoulm.headingRowAlignment fixing #320
 

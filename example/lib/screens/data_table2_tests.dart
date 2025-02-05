@@ -1,6 +1,6 @@
 // ignore_for_file: avoid_print, prefer_interpolation_to_compose_strings, avoid_renaming_method_parameters
 
-import 'package:data_table_2_fork/data_table_2.dart';
+import 'package:data_table_2_extended/data_table_2.dart';
 
 import 'package:flutter/material.dart';
 
