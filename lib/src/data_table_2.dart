@@ -145,53 +145,54 @@ class DataRow2 extends DataRow {
 /// relative column sizes (setting them to S, M and L). [DataRow2] provides
 /// row-level tap event handlers.
 class DataTable2 extends DataTable {
-  DataTable2(
-      {super.key,
-      required super.columns,
-      super.sortColumnIndex,
-      super.sortAscending = true,
-      super.onSelectAll,
-      super.decoration,
-      super.dataRowColor,
-      this.dataRowHeight,
-      super.dataTextStyle,
-      super.headingRowColor,
-      this.fixedColumnsColor,
-      this.fixedCornerColor,
-      super.headingRowHeight,
-      super.headingTextStyle,
-      this.headingCheckboxTheme,
-      this.datarowCheckboxTheme,
-      super.horizontalMargin,
-      super.checkboxHorizontalMargin,
-      this.checkboxAlignment = Alignment.center,
-      this.bottomMargin,
-      super.columnSpacing,
-      this.showHeadingCheckBox = true,
-      super.showCheckboxColumn = true,
-      super.showBottomBorder = false,
-      super.dividerThickness,
-      super.clipBehavior,
-      this.minWidth,
-      this.scrollController,
-      this.horizontalScrollController,
-      this.isVerticalScrollBarVisible,
-      this.isHorizontalScrollBarVisible,
-      this.empty,
-      this.border,
-      this.smRatio = 0.67,
-      this.fixedTopRows = 1,
-      this.fixedLeftColumns = 0,
-      this.lmRatio = 1.2,
-      this.sortArrowAnimationDuration = const Duration(milliseconds: 150),
-      this.sortArrowIcon = Icons.arrow_upward,
-      this.sortArrowBuilder,
-      this.headingRowDecoration,
-      required super.rows,
-      this.highlightColumnColor,
-      this.highlightColumnIndex,
-      this.highlightDuration = const Duration(milliseconds: 100)})
-      : assert(fixedLeftColumns >= 0),
+  DataTable2({
+    super.key,
+    required super.columns,
+    super.sortColumnIndex,
+    super.sortAscending = true,
+    super.onSelectAll,
+    super.decoration,
+    super.dataRowColor,
+    this.dataRowHeight,
+    super.dataTextStyle,
+    super.headingRowColor,
+    this.fixedColumnsColor,
+    this.fixedCornerColor,
+    super.headingRowHeight,
+    super.headingTextStyle,
+    this.headingCheckboxTheme,
+    this.datarowCheckboxTheme,
+    super.horizontalMargin,
+    super.checkboxHorizontalMargin,
+    this.checkboxAlignment = Alignment.center,
+    this.bottomMargin,
+    super.columnSpacing,
+    this.showHeadingCheckBox = true,
+    super.showCheckboxColumn = true,
+    super.showBottomBorder = false,
+    super.dividerThickness,
+    super.clipBehavior,
+    this.minWidth,
+    this.scrollController,
+    this.horizontalScrollController,
+    this.isVerticalScrollBarVisible,
+    this.isHorizontalScrollBarVisible,
+    this.empty,
+    this.border,
+    this.smRatio = 0.67,
+    this.fixedTopRows = 1,
+    this.fixedLeftColumns = 0,
+    this.lmRatio = 1.2,
+    this.sortArrowAnimationDuration = const Duration(milliseconds: 150),
+    this.sortArrowIcon = Icons.arrow_upward,
+    this.sortArrowBuilder,
+    this.headingRowDecoration,
+    required super.rows,
+    this.highlightColumnColor,
+    this.highlightColumnIndex,
+    this.highlightDuration = const Duration(milliseconds: 100),
+    this.shouldSortOnlyOnArrowClick = true,
+  })  : assert(fixedLeftColumns >= 0),
         assert(fixedTopRows >= 0);
 
   static final LocalKey _headingRowKey = UniqueKey();
@@ -349,6 +350,8 @@ class DataTable2 extends DataTable {
 
   final Duration highlightDuration;
 
+  final bool shouldSortOnlyOnArrowClick;
+
   (double, double) getMinMaxRowHeight(DataTableThemeData dataTableTheme) {
     final double effectiveDataRowMinHeight = dataRowHeight ??
         dataTableTheme.dataRowMinHeight ??
@@ -432,19 +435,36 @@ class DataTable2 extends DataTable {
 
     var customArrows =
         sortArrowBuilder != null ? sortArrowBuilder!(ascending, sorted) : null;
+    late final sortArrows;
+    if (shouldSortOnlyOnArrowClick) {
+      sortArrows = InkWell(
+        onTap: onSort,
+        overlayColor: overlayColor,
+        child: customArrows ??
+            _SortArrow(
+              visible: sorted,
+              up: sorted ? ascending : null,
+              duration: sortArrowAnimationDuration,
+              sortArrowIcon: sortArrowIcon,
+            ),
+      );
+    } else {
+      sortArrows = customArrows ??
+          _SortArrow(
+            visible: sorted,
+            up: sorted ? ascending : null,
+            duration: sortArrowAnimationDuration,
+            sortArrowIcon: sortArrowIcon,
+          );
+    }
+
     label = Row(
       textDirection: numeric ? TextDirection.rtl : null,
       mainAxisAlignment: headingRowAlignment,
       children: <Widget>[
         Flexible(child: label),
         if (onSort != null) ...<Widget>[
-          customArrows ??
-              _SortArrow(
-                visible: sorted,
-                up: sorted ? ascending : null,
-                duration: sortArrowAnimationDuration,
-                sortArrowIcon: sortArrowIcon,
-              ),
+          sortArrows,
           const SizedBox(width: _sortArrowPadding),
         ],
       ],
@@ -473,11 +493,14 @@ class DataTable2 extends DataTable {
       );
     }
 
-    label = InkWell(
-      onTap: onSort,
-      overlayColor: overlayColor,
-      child: label,
-    );
+    if (!shouldSortOnlyOnArrowClick) {
+      label = InkWell(
+        onTap: onSort,
+        overlayColor: overlayColor,
+        child: label,
+      );
+    }
+
     return label;
   }
 
@@ -531,7 +554,7 @@ class DataTable2 extends DataTable {
       child: DefaultTextStyle(
         style: effectiveDataTextStyle.copyWith(
           color: placeholder
-              ? effectiveDataTextStyle.color!.withOpacity(0.6)
+              ? effectiveDataTextStyle.color!.withAlpha(153)
               : null,
         ),
         child: DropdownButtonHideUnderline(child: label),
@@ -602,7 +625,7 @@ class DataTable2 extends DataTable {
     final defaultRowColor = WidgetStateProperty.resolveWith(
       (Set<WidgetState> states) {
         if (states.contains(WidgetState.selected)) {
-          return theme.colorScheme.primary.withOpacity(0.08);
+          return theme.colorScheme.primary.withAlpha(20);
         }
         return null;
       },
@@ -939,7 +962,7 @@ class DataTable2 extends DataTable {
                     duration: highlightDuration,
                     decoration: BoxDecoration(
                       color: highlightColumnIndex != null &&
-                          highlightColumnIndex == dataColumnIndex
+                              highlightColumnIndex == dataColumnIndex
                           ? highlightColumnColor
                           : null,
                     ),
