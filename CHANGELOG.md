@@ -1,3 +1,6 @@
+## 2.5.21
+- Added shouldSortOnlyOnArrowClick param to restrick column header clickability.
+
 ## 2.5.20
 - Added highlight column option in data table.
 
