@@ -9,6 +9,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+part 'data_table_2_resizable.dart';
+
 bool dataTableShowLogs = true;
 
 /// Relative size of a column determines the share of total table width allocated
@@ -32,7 +34,9 @@ class DataColumn2 extends DataColumn {
       super.onSort,
       super.headingRowAlignment,
       this.size = ColumnSize.M,
-      this.fixedWidth});
+      this.fixedWidth,
+      this.minWidth,
+      this.isResizable = false});
 
   /// Column sizes are determined based on available width by distributing it
   /// to individual columns accounting for their relative sizes (see [ColumnSize])
@@ -42,6 +46,14 @@ class DataColumn2 extends DataColumn {
   /// Warning, if the width happens to be larger than available total width other
   /// columns can be clipped
   final double? fixedWidth;
+
+  /// Defines the minimum width of the column in pixels.
+  /// If not specified, [ColumnDataController.minColWidth] is used.
+  /// When the column is resizable, it cannot be resized smaller than this value.
+  final double? minWidth;
+
+  /// If you want enable resizing for a given column, set this field to true
+  final bool isResizable;
 }
 
 /// Extension of standard [DataRow], adds row level tap events. Also there're
@@ -183,8 +195,10 @@ class DataTable2 extends DataTable {
     this.fixedTopRows = 1,
     this.fixedLeftColumns = 0,
     this.lmRatio = 1.2,
+    this.columnResizingParameters,
     this.sortArrowAnimationDuration = const Duration(milliseconds: 150),
     this.sortArrowIcon = Icons.arrow_upward,
+    this.sortArrowIconColor,
     this.sortArrowBuilder,
     this.headingRowDecoration,
     required super.rows,
@@ -237,6 +251,9 @@ class DataTable2 extends DataTable {
   /// If not set, the default icon is [Icons.arrow_upward].
   /// When set always overrides/preceeds default arrow icons.
   final IconData sortArrowIcon;
+
+  /// When set always overrides/preceeds default arrow icon color.
+  final Color? sortArrowIconColor;
 
   /// A builder for the sort arrow widget. Can be used in combination with [sortArrowAlwaysVisible] for a custom
   /// sort arrow behavior. If this is used [sortArrowIcon], [sortArrowAnimationDuration] will be ignored.
@@ -318,6 +335,8 @@ class DataTable2 extends DataTable {
   /// Determines ratio of Large column's width to Medium column's width.
   /// I.e. 2.0 means that Large column is twice wider than Medium column.
   final double lmRatio;
+
+  final ColumnResizingParameters? columnResizingParameters;
 
   /// The number of sticky rows fixed at the top of the table.
   /// The heading row is counted/included.
@@ -430,6 +449,8 @@ class DataTable2 extends DataTable {
       required bool ascending,
       required double effectiveHeadingRowHeight,
       required WidgetStateProperty<Color?>? overlayColor,
+      DataColumn2? column,
+      required Function(List<DataColumn>, DataColumn2, double) onColumnResized,
       required MainAxisAlignment headingRowAlignment}) {
     final ThemeData themeData = Theme.of(context);
 
@@ -504,6 +525,26 @@ class DataTable2 extends DataTable {
     return label;
   }
 
+  Widget _buildResizeWidget(DataColumn2 column, double widgetHeight,
+      Function(List<DataColumn>, DataColumn2, double) onColumnResized) {
+    ColumnResizingParameters crp = columnResizingParameters != null
+        ? columnResizingParameters!
+        : ColumnResizingParameters();
+    return ColumnResizeWidget(
+      height: widgetHeight,
+      color: crp.widgetColor,
+      minWidth: crp.widgetMinWidth,
+      maxWidth: crp.widgetMaxWidth,
+      onDragUpdate: (delta) {
+        if (column.isResizable) {
+          onColumnResized(columns, column, delta);
+        }
+      },
+      desktopMode: crp.desktopMode,
+      realTime: crp.realTime,
+    );
+  }
+
   Widget _buildDataCell(
       {required BuildContext context,
       required EdgeInsetsGeometry padding,
@@ -569,15 +610,15 @@ class DataTable2 extends DataTable {
         onTapCancel != null) {
       // cell level
       label = InkWell(
-        onTap: () {
+        onTap: ((onTap == null) && (onRowTap == null)) ? null : () {
           onTap?.call();
           onRowTap?.call();
         },
-        onDoubleTap: () {
+        onDoubleTap: ((onDoubleTap == null) && (onRowDoubleTap == null)) ? null : () {
           onDoubleTap?.call();
           onRowDoubleTap?.call();
         },
-        onLongPress: () {
+        onLongPress: ((onLongPress == null) && (onRowLongPress == null)) ? null : () {
           onLongPress?.call();
           onRowLongPress?.call();
         },
@@ -807,12 +848,12 @@ class DataTable2 extends DataTable {
         effectiveDataRowColor);
 
     var builder = LayoutBuilder(builder: (context, constraints) {
-      return SyncedScrollControllers(
+      return DataTableController(
           scrollController: scrollController,
           sc12toSc11Position: true,
           horizontalScrollController: horizontalScrollController,
           sc22toSc21Position: true,
-          builder: (context, sc11, sc12, sc21, sc22) {
+          builder: (context, sc11, sc12, sc21, sc22, cdc, onColumnResized) {
             var coreVerticalController = sc11;
             var leftColumnVerticalContoller = sc12;
             var coreHorizontalController = sc21;
@@ -827,7 +868,7 @@ class DataTable2 extends DataTable {
 
             // size data columns
             final widths = _calculateDataColumnSizes(
-                constraints, checkBoxWidth, effectiveHorizontalMargin);
+                constraints, checkBoxWidth, effectiveHorizontalMargin, cdc);
 
             // File empty cells in created rows with actual widgets
             for (int dataColumnIndex = 0;
@@ -876,6 +917,8 @@ class DataTable2 extends DataTable {
                 headingRowAlignment: column.headingRowAlignment ??
                     dataTableTheme.headingRowAlignment ??
                     MainAxisAlignment.start,
+                column: column is DataColumn2 ? column : null,
+                onColumnResized: onColumnResized,
               );
 
               if (highlightColumnIndex != null &&
@@ -930,6 +973,7 @@ class DataTable2 extends DataTable {
 
               for (final DataRow row in rows) {
                 final DataCell cell = row.cells[dataColumnIndex];
+                //dataRows[rowIndex].children![displayColumnIndex]
 
                 var c = _buildDataCell(
                     context: context,
@@ -1319,9 +1363,26 @@ class DataTable2 extends DataTable {
     return checkBoxWidth;
   }
 
-  List<double> _calculateDataColumnSizes(BoxConstraints constraints,
-      double checkBoxWidth, double effectiveHorizontalMargin) {
+  List<double> _calculateDataColumnSizes(
+      BoxConstraints constraints,
+      double checkBoxWidth,
+      double effectiveHorizontalMargin,
+      ColumnDataController columnDataController) {
     var totalColAvailableWidth = constraints.maxWidth;
+    double totalExtraWidth = 0;
+    double totalFixedWidth = 0;
+    for (var c in columns) {
+      if (c is DataColumn2) {
+        var extraWidth = columnDataController.getExtraWidth(columns.indexOf(c));
+        totalExtraWidth += extraWidth;
+        if (c.fixedWidth != null) {
+          totalFixedWidth += c.fixedWidth!;
+        } else if (columnDataController.hasExtraWidth(columns.indexOf(c))) {
+          totalFixedWidth +=
+              columnDataController.colsWidthNoExtra[columns.indexOf(c)]!;
+        }
+      }
+    }
     if (minWidth != null && totalColAvailableWidth < minWidth!) {
       totalColAvailableWidth = minWidth!;
     }
@@ -1329,36 +1390,30 @@ class DataTable2 extends DataTable {
     // full margins are added to side column widths when no check box column is
     // present, half-margin added to first data column width is check box column
     // is present and full margin added to the right
-
-    totalColAvailableWidth = totalColAvailableWidth -
-        checkBoxWidth -
-        effectiveHorizontalMargin -
+    var minColWidth = checkBoxWidth +
+        effectiveHorizontalMargin +
         (checkBoxWidth > 0
             ? effectiveHorizontalMargin / 2
             : effectiveHorizontalMargin);
+    totalColAvailableWidth = totalColAvailableWidth - minColWidth;
 
+    // We only check fixed width if there are no resisable columns
+    if (totalExtraWidth == 0) {
+      assert(totalFixedWidth < totalColAvailableWidth,
+          "DataTable2, combined width of columns of fixed width is greater than availble parent width. Table will be clipped");
+    }
+    totalColAvailableWidth = math.max(
+        0.0, totalColAvailableWidth - totalFixedWidth - totalExtraWidth);
     var columnWidth = totalColAvailableWidth / columns.length;
     var totalColCalculatedWidth = 0.0;
-    var totalFixedWidth = columns.fold<double>(
-        0.0,
-        (previousValue, element) =>
-            previousValue +
-            (element is DataColumn2 && element.fixedWidth != null
-                ? element.fixedWidth!
-                : 0.0));
-
-    assert(totalFixedWidth < totalColAvailableWidth,
-        "DataTable2, combined width of columns of fixed width is greater than availble parent width. Table will be clipped");
-
-    totalColAvailableWidth =
-        math.max(0.0, totalColAvailableWidth - totalFixedWidth);
-
     // adjust column sizes relative to S, M, L
     final widths = List<double>.generate(columns.length, (i) {
       var w = columnWidth;
       var column = columns[i];
       if (column is DataColumn2) {
-        if (column.fixedWidth != null) {
+        if (columnDataController.hasExtraWidth(i)) {
+          w = columnDataController.colsWidthNoExtra[i]!;
+        } else if (column.fixedWidth != null) {
           w = column.fixedWidth!;
         } else if (column.size == ColumnSize.S) {
           w *= smRatio;
@@ -1367,21 +1422,37 @@ class DataTable2 extends DataTable {
         }
       }
 
-      // skip fixed width columns
-      if (!(column is DataColumn2 && column.fixedWidth != null)) {
+      //skip fixed width columns
+      if (!(column is DataColumn2 && column.fixedWidth != null) &&
+          !columnDataController.hasExtraWidth(i)) {
         totalColCalculatedWidth += w;
       }
       return w;
     });
 
-    // scale columns to fit the total lemnght into available width
+    // scale columns to fit the total lenght into available width
 
-    var ratio = totalColAvailableWidth / totalColCalculatedWidth;
+    var ratio = totalColCalculatedWidth != 0
+        ? totalColAvailableWidth / totalColCalculatedWidth
+        : 0;
     for (var i = 0; i < widths.length; i++) {
+      double extraWidth = columnDataController.getExtraWidth(i);
       // skip fixed width column
       if (!(columns[i] is DataColumn2 &&
-          (columns[i] as DataColumn2).fixedWidth != null)) {
+              (columns[i] as DataColumn2).fixedWidth != null) &&
+          !columnDataController.hasExtraWidth(i)) {
         widths[i] *= ratio;
+      }
+      columnDataController.colsWidthNoExtra[i] = widths[i];
+      widths[i] += extraWidth;
+      double minColWidth = ColumnDataController.minColWidth;
+      if ((columns[i] is DataColumn2 &&
+          (columns[i] as DataColumn2).minWidth != null)) {
+        minColWidth = (columns[i] as DataColumn2).minWidth!;
+      }
+      if (widths[i] < minColWidth) {
+        widths[i] = minColWidth;
+        columnDataController.colsWidthNoExtra[i] = widths[i];
       }
     }
 
@@ -1519,6 +1590,7 @@ class _SortArrow extends StatefulWidget {
     required this.up,
     required this.duration,
     required this.sortArrowIcon,
+    this.sortArrowIconColor,
   });
 
   final bool visible;
@@ -1528,6 +1600,8 @@ class _SortArrow extends StatefulWidget {
   final Duration duration;
 
   final IconData sortArrowIcon;
+
+  final Color? sortArrowIconColor;
 
   @override
   _SortArrowState createState() => _SortArrowState();
@@ -1633,6 +1707,7 @@ class _SortArrowState extends State<_SortArrow> with TickerProviderStateMixin {
         alignment: Alignment.center,
         child: Icon(
           widget.sortArrowIcon,
+          color: widget.sortArrowIconColor,
           size: _arrowIconSize,
         ),
       ),

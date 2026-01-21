@@ -1,3 +1,17 @@
+## 2.7.2
+- fix: Removed latency issue with DataCell InkWell #378
+
+## 2.7.1
+- Fixing analyzer warnings
+
+## 2.7.0
+- Resizable columns, merged PR #93
+
+## 2.6.0
+- Sort Icon Color override (PR #354)
+- Chinese support (PR #335)
+- Flutter 3.27+ constraint
+
 ## 2.5.21
 - Added shouldSortOnlyOnArrowClick param to restrick column header clickability.
 
@@ -9,7 +23,7 @@
 
 ## 2.5.17
 - Fixing analyzer warnings
-- Aligning with Fluttwr 3.27.0
+- Aligning with Flutter 3.27.0
 
 ## 2.5.16
 - Updating dependencies

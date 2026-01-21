@@ -166,6 +166,7 @@ class PaginatedDataTable2 extends StatefulWidget {
     this.sortAscending = true,
     this.sortArrowAnimationDuration = const Duration(milliseconds: 150),
     this.sortArrowIcon = Icons.arrow_upward,
+    this.sortArrowIconColor,
     this.sortArrowBuilder,
     this.sortArrowAlwaysVisible = false,
     this.onSelectAll,
@@ -212,6 +213,7 @@ class PaginatedDataTable2 extends StatefulWidget {
     this.autoRowsToHeight = false,
     this.smRatio = 0.67,
     this.lmRatio = 1.2,
+    this.columnResizingParameters,
     this.headingRowDecoration,
     this.isVerticalScrollBarVisible,
     this.isHorizontalScrollBarVisible,
@@ -271,6 +273,9 @@ class PaginatedDataTable2 extends StatefulWidget {
   /// Icon to be displayed when sorting is applied to a column.
   /// If not set, the default icon is [Icons.arrow_upward]
   final IconData sortArrowIcon;
+
+  /// You can customize the icon color by setting [sortArrowIconColor].
+  final Color? sortArrowIconColor;
 
   /// This used in combination with [sortArrowBuilder] to create a custom sort arrow widget behavior.
   /// If this is set to true the [sortArrowBuilder] will run for all columns that have [onSort] != null.
@@ -507,6 +512,9 @@ class PaginatedDataTable2 extends StatefulWidget {
 
   /// Exposes scroll controller of the SingleChildScrollView that makes data rows vertically scrollable
   final ScrollController? scrollController;
+
+  /// Parameters to control column resizing
+  final ColumnResizingParameters? columnResizingParameters;
 
   /// Exposes scroll controller of the SingleChildScrollView that makes data rows horizontally scrollable
   final ScrollController? horizontalScrollController;
@@ -772,6 +780,7 @@ class PaginatedDataTable2State extends State<PaginatedDataTable2> {
           sortColumnIndex: widget.sortColumnIndex,
           sortAscending: widget.sortAscending,
           sortArrowIcon: widget.sortArrowIcon,
+          sortArrowIconColor: widget.sortArrowIconColor,
           sortArrowAnimationDuration: widget.sortArrowAnimationDuration,
           sortArrowBuilder: widget.sortArrowBuilder,
           onSelectAll: widget.onSelectAll,
@@ -805,6 +814,7 @@ class PaginatedDataTable2State extends State<PaginatedDataTable2> {
           border: widget.border,
           smRatio: widget.smRatio,
           lmRatio: widget.lmRatio,
+          columnResizingParameters: widget.columnResizingParameters,
           isHorizontalScrollBarVisible: widget.isHorizontalScrollBarVisible,
           isVerticalScrollBarVisible: widget.isVerticalScrollBarVisible,
         ),
